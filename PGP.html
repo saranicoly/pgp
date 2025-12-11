@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Fluxo de Migração de Dados: SUAP → SIADS</title>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            }
+
+            body {
+                background-color: #f5f9ff;
+                color: #333;
+                line-height: 1.6;
+                padding: 20px;
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+
+            header {
+                text-align: center;
+                margin-bottom: 40px;
+                padding: 20px;
+                background: linear-gradient(135deg, #1e3c72, #2a5298);
+                color: white;
+                border-radius: 12px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            .clickable-tool {
+                cursor: pointer;
+                transition: all 0.3s ease;
+                position: relative;
+            }
+
+            .clickable-tool:hover {
+                background-color: #e1f5fe;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+
+            .clickable-tool::after {
+                content: "↗";
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                color: #2a5298;
+                font-size: 1.2rem;
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+
+            .clickable-tool:hover::after {
+                opacity: 1;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+                margin-bottom: 10px;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+                opacity: 0.9;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+
+            .container {
+                display: flex;
+                flex-direction: column;
+                gap: 30px;
+            }
+
+            .flow-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                position: relative;
+                margin-bottom: 40px;
+            }
+
+            .flow-step {
+                background-color: white;
+                border-radius: 10px;
+                padding: 25px;
+                width: 90%;
+                max-width: 800px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+                margin-bottom: 30px;
+                transition: all 0.3s ease;
+                border-left: 6px solid #2a5298;
+                position: relative;
+            }
+
+            .flow-step.active {
+                transform: scale(1.02);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+                border-left-color: #4caf50;
+            }
+
+            .step-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+
+            .step-number {
+                background-color: #2a5298;
+                color: white;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 1.2rem;
+                margin-right: 15px;
+                flex-shrink: 0;
+            }
+
+            .step-title {
+                font-size: 1.5rem;
+                color: #1e3c72;
+            }
+
+            .step-content {
+                margin-left: 55px;
+            }
+
+            .step-description {
+                margin-bottom: 15px;
+                font-size: 1.05rem;
+            }
+
+            .step-tools {
+                background-color: #f0f7ff;
+                padding: 15px;
+                border-radius: 8px;
+                margin-top: 15px;
+            }
+
+            .tool {
+                display: flex;
+                align-items: center;
+                margin-bottom: 10px;
+            }
+
+            .tool:last-child {
+                margin-bottom: 0;
+            }
+
+            .tool-icon {
+                width: 40px;
+                height: 40px;
+                background-color: #e3f2fd;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 12px;
+                color: #1e3c72;
+                font-size: 1.2rem;
+            }
+
+            .tool-name {
+                font-weight: bold;
+                color: #1e3c72;
+            }
+
+            .tool-description {
+                font-size: 0.95rem;
+                color: #555;
+            }
+
+            .step-items {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 15px;
+            }
+
+            .item-tag {
+                background-color: #e8f5e9;
+                color: #2e7d32;
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+            .connector {
+                width: 4px;
+                height: 30px;
+                background-color: #2a5298;
+                opacity: 0.5;
+                margin: 0 auto;
+            }
+
+            .navigation {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-top: 20px;
+            }
+
+            .nav-btn {
+                background-color: #2a5298;
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
+                font-size: 1rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.3s;
+            }
+
+            .nav-btn:hover {
+                background-color: #1e3c72;
+                transform: translateY(-2px);
+            }
+
+            .nav-btn:disabled {
+                background-color: #cccccc;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .legend {
+                background-color: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+                margin-top: 30px;
+            }
+
+            .legend h3 {
+                color: #1e3c72;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+
+            .legend-items {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 20px;
+            }
+
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .legend-color {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+            }
+
+            .legend-text {
+                font-size: 0.9rem;
+            }
+
+            .system-badge {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background-color: #ff9800;
+                color: white;
+                padding: 5px 15px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                font-weight: bold;
+            }
+
+            @media (max-width: 768px) {
+                .flow-step {
+                    width: 100%;
+                    padding: 20px;
+                }
+
+                .step-content {
+                    margin-left: 0;
+                    margin-top: 15px;
+                }
+
+                .step-header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+
+                .step-number {
+                    margin-bottom: 10px;
+                }
+
+                h1 {
+                    font-size: 2rem;
+                }
+                #step5 .step-header {
+                    padding-top: 40px; /* Adiciona espaço para o badge */
+                }
+                #step5 .system-badge {
+                    top: 25px; /* Aumenta a distância do topo */
+                    right: 25px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Fluxo de Migração de Dados: SUAP → SIADS</h1>
+            <p class="subtitle">
+                Ilustração interativa do processo de extração, padronização e
+                migração dos dados patrimoniais dos IFPE
+            </p>
+        </header>
+
+        <div class="container">
+            <div class="flow-container">
+                <!-- Passo 1: Sistema SUAP -->
+                <div class="flow-step active" id="step1">
+                    <br />
+                    <div class="system-badge">SISTEMA ORIGEM</div>
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <h2 class="step-title">
+                            Sistema SUAP (Sistema Unificado de Administração
+                            Pública)
+                        </h2>
+                    </div>
+                    <div class="step-content">
+                        <p class="step-description">
+                            O SUAP é um sistema antigo utilizado para gestão
+                            administrativa que contém todos os dados
+                            patrimoniais dos Institutos Federais de Educação,
+                            Ciência e Tecnologia (IFPE).
+                        </p>
+
+                        <div class="step-tools">
+                            <div class="tool">
+                                <div class="tool-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div>
+                                    <div class="tool-name">
+                                        Relatório Patrimonial em PDF
+                                    </div>
+                                    <div class="tool-description">
+                                        Documento com tabela extensa contendo
+                                        todos os itens patrimoniais
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Conteúdo do PDF:</strong> Lista completa de
+                            todos os bens patrimoniais da União sob gestão dos
+                            IFPEs.
+                        </p>
+
+                        <div class="step-items">
+                            <div class="item-tag">
+                                <i class="fas fa-chair"></i> Cadeiras
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-table"></i> Mesas
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-tv"></i> Quadros/Televisores
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-pen"></i> Canetas
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-print"></i> Impressoras
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-desktop"></i> Computadores
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-book"></i> Livros
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-car"></i> Automóveis
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-bug"></i> Animais
+                            </div>
+                            <div class="item-tag">
+                                <i class="fas fa-ellipsis-h"></i> Outros itens
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="connector"></div>
+
+                <!-- Passo 2: Tabula -->
+                <div class="flow-step" id="step2">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <h2 class="step-title">
+                            Processamento com Tabula.technology
+                        </h2>
+                    </div>
+                    <div class="step-content">
+                        <p class="step-description">
+                            O Tabula é uma ferramenta online que extrai tabelas
+                            de arquivos PDF e as converte para formatos
+                            estruturados como CSV, facilitando a manipulação dos
+                            dados.
+                        </p>
+
+                        <!-- Passo 2: Tabula (opcional) -->
+                        <div
+                            class="step-tools clickable-tool"
+                            data-url="https://tabula.technology/"
+                        >
+                            <div class="tool">
+                                <div class="tool-icon">
+                                    <i class="fas fa-table"></i>
+                                </div>
+                                <div>
+                                    <div class="tool-name">
+                                        Tabula.technology
+                                    </div>
+                                    <div class="tool-description">
+                                        Ferramenta web para extração de tabelas
+                                        de PDFs
+                                        <br /><small
+                                            style="color: #2a5298; font-weight: bold; margin-top: 5px; display: block;"
+                                        >
+                                            <i
+                                                class="fas fa-external-link-alt"
+                                            ></i>
+                                            Clique para acessar a ferramenta
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Processo executado:</strong>
+                        </p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Upload do PDF gerado pelo SUAP</li>
+                            <li>
+                                Seleção automática ou manual das tabelas no
+                                documento
+                            </li>
+                            <li>
+                                Extração dos dados tabulares para formato
+                                estruturado
+                            </li>
+                            <li>
+                                Exportação para arquivo CSV (Comma-Separated
+                                Values)
+                            </li>
+                        </ul>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Resultado:</strong> Dados padronizados em
+                            formato CSV, pronto para a próxima etapa de
+                            refinamento.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="connector"></div>
+
+                <!-- Passo 3: OpenRefine -->
+                <div class="flow-step" id="step3">
+                    <div class="step-header">
+                        <div class="step-number">3</div>
+                        <h2 class="step-title">Refinamento com OpenRefine</h2>
+                    </div>
+                    <div class="step-content">
+                        <p class="step-description">
+                            OpenRefine é uma ferramenta open-source para limpeza
+                            e transformação de dados. Ela roda localmente,
+                            garantindo a privacidade dos dados patrimoniais, e
+                            utiliza algoritmos de clustering para identificar e
+                            unificar dados similares.
+                        </p>
+
+                        <!-- Para o OpenRefine (passo 3) -->
+                        <!-- Passo 3: OpenRefine (igual ao SIADS) -->
+                        <div
+                            class="step-tools clickable-tool"
+                            data-url="https://openrefine.org/"
+                        >
+                            <div class="tool">
+                                <div class="tool-icon">
+                                    <i class="fas fa-filter"></i>
+                                </div>
+                                <div>
+                                    <div class="tool-name">OpenRefine</div>
+                                    <div class="tool-description">
+                                        Ferramenta open-source para limpeza e
+                                        transformação de dados
+                                        <br /><small
+                                            style="color: #2a5298; font-weight: bold; margin-top: 5px; display: block;"
+                                        >
+                                            <i
+                                                class="fas fa-external-link-alt"
+                                            ></i>
+                                            Clique para acessar o site oficial
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Operações realizadas:</strong>
+                        </p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>
+                                Importação do arquivo CSV gerado pelo Tabula
+                            </li>
+                            <li>
+                                Identificação e correção de inconsistências nos
+                                dados
+                            </li>
+                            <li>
+                                <strong>Clustering de dados</strong> para
+                                agrupar itens similares (ex: "cadeira", "cadeira
+                                ergonômica", "cadeira giratória")
+                            </li>
+                            <li>
+                                Padronização de formatos, unidades de medida e
+                                categorias
+                            </li>
+                            <li>Exportação dos dados limpos e estruturados</li>
+                        </ul>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Vantagens:</strong> Processamento local
+                            (garante privacidade), algoritmos inteligentes de
+                            clustering, transformações em lote.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="connector"></div>
+
+                <!-- NOVO PASSO 4: LM Studio -->
+                <div class="flow-step" id="step3-5">
+                    <div class="step-header">
+                        <div class="step-number">4</div>
+                        <h2 class="step-title">
+                            Padronização Inteligente com LM Studio
+                        </h2>
+                    </div>
+                    <div class="step-content">
+                        <p class="step-description">
+                            Após o processamento inicial no OpenRefine,
+                            utilizamos o LM Studio com modelos de linguagem
+                            locais para uma padronização inteligente das
+                            descrições patrimoniais, mantendo a privacidade dos
+                            dados.
+                        </p>
+
+                        <!-- Ferramenta LM Studio -->
+                        <div
+                            class="step-tools clickable-tool"
+                            data-url="https://lmstudio.ai/"
+                        >
+                            <div class="tool">
+                                <div class="tool-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div>
+                                    <div class="tool-name">LM Studio</div>
+                                    <div class="tool-description">
+                                        Plataforma para executar modelos de
+                                        linguagem localmente
+                                        <br /><small
+                                            style="color: #2a5298; font-weight: bold; margin-top: 5px; display: block;"
+                                        >
+                                            <i
+                                                class="fas fa-external-link-alt"
+                                            ></i>
+                                            Clique para acessar o site oficial
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Processo executado:</strong>
+                        </p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>
+                                <strong
+                                    >Extrair apenas a lista de descrições
+                                    únicas</strong
+                                >
+                                do arquivo processado pelo OpenRefine
+                            </li>
+                            <li>
+                                <strong
+                                    >Passar essa lista para o LM Studio</strong
+                                >
+                                com um prompt específico para padronização
+                            </li>
+                            <li>
+                                <strong
+                                    >Utilizar modelos de linguagem
+                                    locais</strong
+                                >
+                                para garantir a privacidade dos dados
+                            </li>
+                            <li>
+                                <strong>Gerar uma tabela padronizada</strong>
+                                com mapeamento original → padronizado
+                            </li>
+                        </ul>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Prompt utilizado no LM Studio:</strong>
+                        </p>
+
+                        <div
+                            class="step-tools"
+                            style="background-color: #f8f9fa; border-left: 4px solid #6c757d;"
+                        >
+                            <div
+                                style="font-family: 'Courier New', monospace; font-size: 0.9rem; color: #333;"
+                            >
+                                <p>
+                                    <strong
+                                        >"Tenho uma lista de descrições de
+                                        patrimônio (Coluna A). Preciso que você
+                                        gere uma Coluna B com o 'Nome
+                                        Padronizado'.</strong
+                                    >
+                                </p>
+                                <p><strong>Regras de Ouro:</strong></p>
+                                <ul
+                                    style="margin-left: 20px; margin-bottom: 10px;"
+                                >
+                                    <li>
+                                        <strong>CORRIGIR:</strong> Erros de
+                                        português, abreviações ('Cad.' →
+                                        'Cadeira') e formatação.
+                                    </li>
+                                    <li>
+                                        <strong>MANTER:</strong> A
+                                        especificidade do item. 'Cadeira de
+                                        Escritório' é diferente de 'Cadeira
+                                        Escolar'. Mantenha essa diferença. Não
+                                        generalize para apenas 'Cadeira'.
+                                    </li>
+                                    <li>
+                                        <strong>FORMATO:</strong> Me entregue
+                                        APENAS uma tabela CSV com duas colunas:
+                                        original; padronizado.
+                                    </li>
+                                </ul>
+                                <p>
+                                    <strong
+                                        >Lista: [Cole sua lista de únicos
+                                        aqui]"</strong
+                                    >
+                                </p>
+                            </div>
+                        </div>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Exemplo de transformação:</strong>
+                        </p>
+
+                        <div class="step-items">
+                            <div
+                                class="item-tag"
+                                style="background-color: #fff3cd; color: #856404;"
+                            >
+                                <i class="fas fa-arrow-right"></i>
+                                <span style="text-decoration: line-through;"
+                                    >Cad. ergonomica</span
+                                >
+                                →
+                                <strong>Cadeira Ergonômica</strong>
+                            </div>
+                            <div
+                                class="item-tag"
+                                style="background-color: #fff3cd; color: #856404;"
+                            >
+                                <i class="fas fa-arrow-right"></i>
+                                <span style="text-decoration: line-through;"
+                                    >mesa escritorio</span
+                                >
+                                →
+                                <strong>Mesa de Escritório</strong>
+                            </div>
+                            <div
+                                class="item-tag"
+                                style="background-color: #fff3cd; color: #856404;"
+                            >
+                                <i class="fas fa-arrow-right"></i>
+                                <span style="text-decoration: line-through;"
+                                    >quadro branco</span
+                                >
+                                →
+                                <strong>Quadro Branco</strong>
+                            </div>
+                            <div
+                                class="item-tag"
+                                style="background-color: #fff3cd; color: #856404;"
+                            >
+                                <i class="fas fa-arrow-right"></i>
+                                <span style="text-decoration: line-through;"
+                                    >computador desktop</span
+                                >
+                                →
+                                <strong>Computador Desktop</strong>
+                            </div>
+                        </div>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Vantagens:</strong> Processamento local com
+                            IA (garante privacidade), correção inteligente de
+                            inconsistências, padronização semântica mantendo
+                            especificidades, redução de trabalho manual.
+                        </p>
+
+                        <div
+                            class="step-tools"
+                            style="background-color: #e8f5e9; margin-top: 15px;"
+                        >
+                            <div
+                                style="display: flex; align-items: center; gap: 10px;"
+                            >
+                                <div style="color: #2e7d32; font-size: 1.2rem;">
+                                    <i class="fas fa-lightbulb"></i>
+                                </div>
+                                <div>
+                                    <div
+                                        style="font-weight: bold; color: #1b5e20;"
+                                    >
+                                        <i class="fas fa-shield-alt"></i> Dados
+                                        Sensíveis Protegidos
+                                    </div>
+                                    <div
+                                        style="font-size: 0.95rem; color: #555;"
+                                    >
+                                        O LM Studio roda 100% localmente,
+                                        garantindo que dados patrimoniais
+                                        sensíveis nunca saiam da rede interna.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="connector"></div>
+
+                <!-- Passo 4: SIADS -->
+                <div class="flow-step" id="step5">
+                    <br />
+                    <div class="system-badge">SISTEMA DESTINO</div>
+                    <div class="step-header">
+                        <div class="step-number">5</div>
+                        <h2 class="step-title">
+                            Sistema SIADS (Sistema Integrado de Administração de
+                            Serviços)
+                        </h2>
+                    </div>
+                    <div class="step-content">
+                        <p class="step-description">
+                            O SIADS é o novo sistema do governo que substituirá
+                            o SUAP, oferecendo melhor gestão, interface
+                            intuitiva e recursos avançados para administração
+                            dos bens patrimoniais.
+                        </p>
+
+                        <div
+                            class="step-tools clickable-tool"
+                            data-url="https://siads.fazenda.gov.br/siadsweb/login"
+                        >
+                            <div class="tool">
+                                <div class="tool-icon">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <div>
+                                    <div class="tool-name">SIADS</div>
+                                    <div class="tool-description">
+                                        Sistema moderno de gestão patrimonial
+                                        <br /><small
+                                            style="color: #2a5298; font-weight: bold; margin-top: 5px; display: block;"
+                                        >
+                                            <i
+                                                class="fas fa-external-link-alt"
+                                            ></i>
+                                            Clique para acessar o sistema
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Processo de migração:</strong>
+                        </p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>
+                                Importação dos dados refinados do OpenRefine
+                            </li>
+                            <li>
+                                Mapeamento dos campos entre os sistemas (SUAP →
+                                SIADS)
+                            </li>
+                            <li>Validação final dos dados migrados</li>
+                            <li>
+                                Ativação do sistema SIADS para uso operacional
+                            </li>
+                        </ul>
+
+                        <p class="step-description" style="margin-top: 15px;">
+                            <strong>Resultado final:</strong> Todos os dados
+                            patrimoniais dos IFPEs migrados para um sistema
+                            moderno, com dados padronizados, limpos e prontos
+                            para uma gestão eficiente.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const steps = document.querySelectorAll(".flow-step");
+                const prevBtn = document.getElementById("prev-btn");
+                const nextBtn = document.getElementById("next-btn");
+                let currentStep = 0;
+
+                // Atualizar visualização dos passos
+                function updateSteps() {
+                    steps.forEach((step, index) => {
+                        if (index === currentStep) {
+                            step.classList.add("active");
+                        } else {
+                            step.classList.remove("active");
+                        }
+                    });
+
+                    // Atualizar estado dos botões
+                    prevBtn.disabled = currentStep === 0;
+                    nextBtn.disabled = currentStep === steps.length - 1;
+
+                    // Atualizar texto do botão próximo
+                    if (currentStep === steps.length - 1) {
+                        nextBtn.innerHTML =
+                            'Fluxo Completo <i class="fas fa-check"></i>';
+                    } else {
+                        nextBtn.innerHTML =
+                            'Próxima Etapa <i class="fas fa-arrow-right"></i>';
+                    }
+                }
+
+                // Navegar para a próxima etapa
+                nextBtn.addEventListener("click", function() {
+                    if (currentStep < steps.length - 1) {
+                        currentStep++;
+                        updateSteps();
+
+                        // Rolagem suave para o passo ativo
+                        steps[currentStep].scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+                    }
+                });
+
+                // Navegar para a etapa anterior
+                prevBtn.addEventListener("click", function() {
+                    if (currentStep > 0) {
+                        currentStep--;
+                        updateSteps();
+
+                        // Rolagem suave para o passo ativo
+                        steps[currentStep].scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+                    }
+                });
+
+                // Inicializar
+                updateSteps();
+
+                // Adicionar interatividade aos passos (clicar para ativar)
+                steps.forEach((step, index) => {
+                    step.addEventListener("click", function() {
+                        currentStep = index;
+                        updateSteps();
+                    });
+                });
+
+                // Adicionar efeito de digitação ao título (opcional)
+                const title = document.querySelector("h1");
+                const originalText = title.textContent;
+                let charIndex = 0;
+
+                function typeWriter() {
+                    if (charIndex < originalText.length) {
+                        title.textContent = originalText.substring(
+                            0,
+                            charIndex + 1
+                        );
+                        charIndex++;
+                        setTimeout(typeWriter, 50);
+                    }
+                }
+
+                // Iniciar efeito de digitação após 0.5 segundos
+                setTimeout(typeWriter, 500);
+            });
+            // Tornar o SIADS clicável
+            document
+                .querySelector(".clickable-tool")
+                .addEventListener("click", function() {
+                    const url = this.getAttribute("data-url");
+                    window.open(url, "_blank");
+                });
+
+            // Adicionar também para outros elementos se necessário
+            document.querySelectorAll(".clickable-tool").forEach(element => {
+                element.addEventListener("click", function() {
+                    const url = this.getAttribute("data-url");
+                    if (url) {
+                        window.open(url, "_blank");
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>
